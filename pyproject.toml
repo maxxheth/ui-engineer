@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Maximillian Heth", email = "info@edfx.co" }
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "pydantic>=2.13.5",
     "python-dotenv>=1.2.4",
@@ -51,3 +51,8 @@ reportUnknownMemberType = false
 reportUnknownVariableType = false
 reportUnknownParameterType = false
 reportUnknownArgumentType = false
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:The 'strip_cdata' option of HTMLParser\\(\\) has never done anything:DeprecationWarning:lxml\\.html",
+]
