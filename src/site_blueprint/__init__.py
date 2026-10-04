@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 from site_blueprint.cli import app, main
 from site_blueprint.models import (
     ColorPalette,
@@ -19,6 +21,14 @@ from site_blueprint.models import (
 )
 from site_blueprint.proxy_manager import ProxyConfig, resolve_proxy_config
 from site_blueprint.scrapling_engine import ScraplingEngine
+
+# Suppress known upstream deprecation warning in lxml 6.x when invoked by Scrapling
+warnings.filterwarnings(
+    "ignore",
+    message=r"The 'strip_cdata' option of HTMLParser\(\) has never done anything",
+    category=DeprecationWarning,
+    module=r"lxml\.html",
+)
 
 __version__ = "0.1.0"
 
