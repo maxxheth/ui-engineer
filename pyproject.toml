@@ -1,0 +1,53 @@
+[project]
+name = "site-blueprint"
+version = "0.1.0"
+description = "Reverse-engineering live web pages into ultra-dense, token-optimized LLM context blueprints"
+readme = "README.md"
+authors = [
+    { name = "Maximillian Heth", email = "info@edfx.co" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.13.5",
+    "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.3",
+    "scrapling[fetchers]>=0.4.15",
+    "typer>=0.27.2",
+]
+
+[project.scripts]
+site-blueprint = "site_blueprint.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.11.6,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.414",
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "strict"
+pythonVersion = "3.11"
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownParameterType = false
+reportUnknownArgumentType = false

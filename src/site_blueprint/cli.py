@@ -1,0 +1,228 @@
+"""Command Line Interface for site-blueprint using Typer."""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+from typing import Annotated
+
+import typer
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
+from site_blueprint.exporter import export_blueprint
+from site_blueprint.proxy_manager import resolve_proxy_config
+from site_blueprint.scrapling_engine import ScraplingEngine
+
+app = typer.Typer(
+    name="site-blueprint",
+    help="Reverse-engineer live web pages into ultra-dense, token-optimized LLM context blueprints.",
+    add_completion=False,
+)
+
+console = Console()
+
+
+def setup_logging(verbose: bool = False) -> None:
+    """Configure console logging level and format."""
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+
+@app.command()
+def extract(
+    url: Annotated[
+        str | None,
+        typer.Argument(help="Target website URL to reverse-engineer"),
+    ] = None,
+    url_opt: Annotated[
+        str | None,
+        typer.Option("--url", "-u", help="Target URL (alternative to positional argument)"),
+    ] = None,
+    output: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Output directory for generated blueprints"),
+    ] = Path("./output"),
+    screenshot: Annotated[
+        bool,
+        typer.Option(
+            "--screenshot", "-s", help="Capture a full-page screenshot alongside the blueprint"
+        ),
+    ] = False,
+    wait_until: Annotated[
+        str,
+        typer.Option(
+            "--wait-until",
+            help="Wait condition for page stability: 'networkidle', 'load', or a CSS selector",
+        ),
+    ] = "networkidle",
+    timeout: Annotated[
+        int,
+        typer.Option("--timeout", "-t", help="Timeout in seconds for page fetching and rendering"),
+    ] = 30,
+    viewport: Annotated[
+        str,
+        typer.Option("--viewport", help="Emulated viewport dimensions (WIDTHxHEIGHT)"),
+    ] = "1440x900",
+    proxy: Annotated[
+        str | None,
+        typer.Option(
+            "--proxy", help="Single proxy URL (e.g. http://user:pass@isp.decodo.com:10001)"
+        ),
+    ] = None,
+    proxy_file: Annotated[
+        str | None,
+        typer.Option(
+            "--proxy-file", help="Path to text file containing proxy URLs (e.g. proxies.txt)"
+        ),
+    ] = None,
+    decodo: Annotated[
+        bool,
+        typer.Option(
+            "--decodo", help="Enable Decodo ISP proxy integration from environment/proxies.txt"
+        ),
+    ] = False,
+    stealth: Annotated[
+        bool,
+        typer.Option(
+            "--stealth", help="Use StealthyFetcher to bypass Cloudflare and bot mitigations"
+        ),
+    ] = False,
+    fmt: Annotated[
+        str,
+        typer.Option("--format", "-f", help="Output format: 'all', 'json', 'markdown', or 'yaml'"),
+    ] = "all",
+    headless: Annotated[
+        bool,
+        typer.Option("--headless/--no-headless", help="Run browser in headless or visible mode"),
+    ] = True,
+    real_chrome: Annotated[
+        bool | None,
+        typer.Option(
+            "--real-chrome/--no-real-chrome", help="Use installed Google Chrome executable"
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", "-v", help="Enable verbose debug logging"),
+    ] = False,
+) -> None:
+    """Reverse-engineer a web page into a token-optimized blueprint for vibe-coding."""
+    setup_logging(verbose)
+
+    target_url = url or url_opt
+    if not target_url:
+        console.print(
+            "[bold red]Error:[/bold red] Missing target URL. Specify as argument or via --url."
+        )
+        raise typer.Exit(code=1)
+
+    if not target_url.startswith(("http://", "https://")):
+        target_url = f"https://{target_url}"
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]site-blueprint[/bold cyan] [green]v0.1.0[/green]\n"
+            f"Target: [bold]{target_url}[/bold]\n"
+            f"Output: [yellow]{output}[/yellow]\n"
+            f"Wait condition: [magenta]{wait_until}[/magenta] | Viewport: [blue]{viewport}[/blue]",
+            title="UI Reverse Engineering Pipeline",
+        )
+    )
+
+    # 1. Resolve proxy settings (Decodo / custom)
+    proxy_cfg = resolve_proxy_config(
+        proxy=proxy,
+        proxy_file=proxy_file,
+        enable_decodo=decodo,
+    )
+    if proxy_cfg.has_proxy:
+        console.print(f"[cyan]Using Proxy:[/cyan] {proxy_cfg.get_display_summary()}")
+
+    # 2. Configure screenshot destination
+    screenshot_dest: Path | None = None
+    if screenshot:
+        output.mkdir(parents=True, exist_ok=True)
+        screenshot_dest = output / "screenshot.png"
+
+    # 3. Initialize and execute Scrapling engine
+    engine = ScraplingEngine(
+        url=target_url,
+        wait_until=wait_until,
+        timeout=timeout,
+        viewport=viewport,
+        proxy_config=proxy_cfg,
+        use_stealth=stealth,
+        real_chrome=real_chrome,
+        headless=headless,
+        screenshot_path=screenshot_dest,
+    )
+
+    try:
+        with console.status("[bold green]Harvesting design tokens and mapping DOM landmarks..."):
+            blueprint = engine.execute()
+    except Exception as e:
+        console.print(f"[bold red]Extraction failed:[/bold red] {e}")
+        if verbose:
+            console.print_exception()
+        raise typer.Exit(code=1) from e
+
+    # 4. Export blueprint artifacts
+    do_json = fmt in {"all", "json"}
+    do_md = fmt in {"all", "markdown", "md"}
+    do_yaml = fmt in {"all", "yaml", "yml"}
+
+    saved = export_blueprint(
+        blueprint=blueprint,
+        output_dir=output,
+        export_json=do_json,
+        export_markdown=do_md,
+        export_yaml=do_yaml,
+    )
+
+    # 5. Display summary report
+    table = Table(title="Generated Blueprint Summary", show_header=True)
+    table.add_column("Category", style="cyan")
+    table.add_column("Count / Details", style="green")
+
+    table.add_row("Page Title", blueprint.metadata.title or "N/A")
+    table.add_row("Unique Colors", str(len(blueprint.tokens.colors.all_colors)))
+    table.add_row("Primary Font", blueprint.tokens.typography.primary_font_family)
+    table.add_row("Header Scales", str(len(blueprint.tokens.typography.header_scales)))
+    table.add_row("DOM Landmarks", str(len(blueprint.landmarks)))
+
+    # Count collapsed patterns across all landmarks
+    total_patterns = sum(len(lm.detected_patterns) for lm in blueprint.landmarks)
+    table.add_row("Collapsed Patterns", str(total_patterns))
+
+    table.add_row("Production Assets", str(len(blueprint.external_production_assets)))
+
+    console.print(table)
+
+    console.print("\n[bold green]Artifacts successfully saved:[/bold green]")
+    for kind, path in saved.items():
+        console.print(f"  • [{kind.upper()}] [link=file://{path.resolve()}]{path}[/link]")
+    if blueprint.screenshot_path:
+        console.print(
+            f"  • [SCREENSHOT] [link=file://{Path(blueprint.screenshot_path).resolve()}]{blueprint.screenshot_path}[/link]"
+        )
+
+
+@app.command()
+def version() -> None:
+    """Show the site-blueprint version."""
+    console.print("[bold cyan]site-blueprint[/bold cyan] version [green]0.1.0[/green]")
+
+
+def main() -> None:
+    """CLI application entrypoint."""
+    app()
+
+
+if __name__ == "__main__":
+    main()

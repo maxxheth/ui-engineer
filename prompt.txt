@@ -1,0 +1,62 @@
+You are an expert Python systems architect and automation engineer.
+
+### Project Goal
+Build a specialized CLI tool and Python package called `site-blueprint` that leverages the `scrapling` library. Its sole objective is reverse-engineering live web pages into ultra-dense, token-optimized JSON/YAML context blueprints specifically designed to be injected into downstream LLMs for "vibe-coding" or automated UI reconstruction.
+
+---
+
+### Strict Toolchain & Standards
+The project must adhere to modern Python tooling:
+1. **Dependency Management & Packaging:** Use `uv` exclusively for environment provisioning, dependency locking, and virtual environment management (`uv init`, `uv add`, `uv run`). Include a standard `pyproject.toml` targeting Python 3.11+.
+2. **Formatting & Linting:** Use `ruff` for code formatting, import sorting, and linting (`ruff check --fix`, `ruff format`). Configure rules in `pyproject.toml` with strict checks enabled (`E`, `F`, `I`, `UP`, `B`, `SIM`).
+3. **Type Checking:** Use `pyright` for strict static type analysis (`pyright site_blueprint`). All functions, signatures, dataclasses, and Pydantic models must have complete, strict type annotations. No untyped calls or implicit `Any` types.
+
+---
+
+### Key Requirements & Architecture
+
+#### 1. Engine & Fetching Pipeline (`scrapling_engine.py`)
+- Use `scrapling.DynamicFetcher` (or `StealthyFetcher`) to handle single-page apps (SPAs) and dynamic client-side hydration.
+- Hook into the underlying browser page session to attach network listeners prior to navigation.
+- Support CLI options:
+  - `--url <target>`: The entry URL.
+  - `--wait-until <networkidle|load|selector>`: Configurable wait conditions for complete rendering.
+  - `--timeout <int>`: Configurable timeout in seconds (default: 30).
+  - `--viewport <width>x<height>`: Emulated screen dimensions (default: 1440x900).
+
+#### 2. Design Token Harvesting (`token_extractor.py`)
+Inject a client-side JavaScript evaluation that computes and summarizes:
+- **Color Palette:** Extract background, surface, and text colors from `:root`, `body`, and key landmarks (`header`, `main`, `footer`, `section`). Deduplicate and normalize into hex/rgb values.
+- **Typography:** Primary font family stack, base font size, line-height, and header scales (`h1` through `h4`).
+- **Spacing & Elevation:** Dominant border-radii (`border-radius`) and box-shadow signatures used across buttons and cards.
+- **Custom Properties:** Identify and extract any `--color-*` or `--theme-*` CSS variables defined on `:root`.
+
+#### 3. Semantic DOM Pruning & Pattern Recognition (`dom_pruner.py`)
+Raw HTML is too verbose for LLM context windows. Build a pruning and aggregation engine that:
+- Strips all `<script>`, `<style>`, `<noscript>`, `<svg>`, `<iframe>`, and tracking pixels.
+- Maps the page by major structural landmarks (`header`, `nav`, `main`, `section`, `article`, `aside`, `footer`).
+- **Pattern Deduplication:** When a container contains 3+ sibling elements with near-identical tag structures (e.g., a card grid or testimonial list), collapse them into a single schema:
+  `{ "pattern": "FeatureCard", "instance_count": 6, "sample_content": { ... } }`
+- Captures actionable interaction metadata per section:
+  - Count of inputs, forms, textareas, selects.
+  - Count and labels of primary actions (CTA buttons, submit buttons).
+- Extracts concise text previews (max 15–25 words per section) to document copy intent without polluting token budgets.
+
+#### 4. Specialized Asset & Runtime Inspector (`asset_inspector.py`)
+Websites often incorporate external production disciplines—such as 3D assets from Blender, vector micro-animations from After Effects/Rive, and specialized video pipelines—that appear as empty `<canvas>` or `<video>` elements in standard DOM scrapers.
+- **Network Interception:** Monitor network responses during load to log all binary/runtime asset URLs:
+  - **3D Models:** `.gltf`, `.glb`, `.splinecode`, `.usdz`, `.fbx`, `.bin`
+  - **Vector Motion & Runtimes:** `.riv` (Rive), `.lottie` / `.json` (Lottie / Bodymovin)
+  - **Rich Video Loops:** `.mp4`, `.webm`, `.m3u8`
+- **Canvas & WebGL Evaluation:** Probe all `<canvas>` nodes in the DOM to determine whether they run 2D, WebGL, or WebGL2 contexts. Identify associated runtime engines mounted on `window` (Three.js, Babylon.js, Spline, Rive, Lottie).
+- **Video Diagnostics:** Inspect `<video>` tags for playback configuration flags (`autoplay`, `muted`, `loop`, `playsinline`) to distinguish decorative background video loops from interactive video players.
+- **Blueprint Integration:** Attach an `external_production_assets` array to the resulting blueprint, specifying detected engines, direct asset URLs, parent structural landmarks, and suggested React/Next.js runtime wrappers (e.g., `@react-three/fiber`, `@rive-app/react-canvas`, standard HTML5 video loop).
+
+#### 5. Multimodal & Export Layer (`exporter.py`, `cli.py`)
+- Capture an optional full-page screenshot and save it alongside the blueprint (`--screenshot`).
+- Produce output formats:
+  - `blueprint.json`: Machine-readable, structured specification validated against Pydantic models.
+  - `blueprint.md`: An LLM-ready context block with an embedded prompt template, ready to copy-paste directly into an AI model.
+- Include a simple CLI interface using `typer`:
+  ```bash
+  uv run site-blueprint extract [https://example.com](https://example.com) --output ./output --screenshot
