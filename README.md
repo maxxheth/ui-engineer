@@ -18,7 +18,7 @@
    - Native support for Decodo ISP and residential proxy pools.
    - Automatic proxy parsing, credentials handling, and password redaction.
    - Round-robin proxy rotation pool support via Scrapling's `ProxyRotator`.
-   - Auto-detection of `proxies.txt` or `--decodo` flag referencing `/var/www/upwork-scraper-fs/proxies.txt`.
+   - Auto-detection of `proxies.txt` or `--decodo` flag referencing `.env` or proxy list files.
 
 3. **Design Token Harvesting (`token_extractor.py`)**
    - Client-side JavaScript evaluation that samples computed styles across landmarks (`header`, `main`, `footer`, `section`, `nav`).
@@ -46,8 +46,14 @@
    - **Video Diagnostics**: Inspects playback flags (`autoplay`, `muted`, `loop`, `playsinline`) to distinguish decorative background loops from interactive players.
    - **Runtime Ecosystem Mapping**: Recommends modern React/Next.js wrappers (`@react-three/fiber`, `@rive-app/react-canvas`, `@splinetool/react-spline`, `@lottiefiles/react-lottie-player`).
 
-6. **Multimodal & Export Layer (`exporter.py`, `cli.py`)**
-   - Full-page screenshots saved alongside blueprints (`--screenshot`).
+6. **Sophisticated Feature Detection & Exploration (`feature_detector.py`)**
+   - **Motion Runtimes**: Detects GSAP (ScrollTrigger, SplitText), Lenis smooth scrolling, Three.js, Rive, and Lottie.
+   - **Sticky Tracks**: Identifies CSS and JS sticky scroll containers, pinning mechanics, and horizontal scroll tracks.
+   - **Off-Screen Drawers & Modals**: Detects hidden drawers/modals, triggers them open to evaluate active DOM state and extract copy/structure, and restores original layout.
+   - **Interactive Elements**: Inspects accordions, expandable FAQ modules, tabs, and marquees.
+
+7. **Multimodal & Export Layer (`exporter.py`, `cli.py`)**
+   - Full-page screenshots saved alongside blueprints (`--screenshot`), with progressive scrolling, texture clamp safeguards, and GSAP stabilization.
    - `blueprint.json`: Validated against strict Pydantic schemas.
    - `blueprint.md`: LLM-ready context block with embedded vibe-coding instructions, ready to copy-paste directly into Claude, GPT-4, or Gemini.
    - `blueprint.yaml`: Ultra-dense YAML representation for minimal token consumption.
@@ -97,10 +103,10 @@ uv run site-blueprint extract https://example.com --decodo
 
 Environment variables supported in `.env`:
 ```env
-DECODO_PROXY_URL="http://sp98ilsn7j:g9t4Vv7eu_QXf7sOve@isp.decodo.com:10001"
+DECODO_PROXY_URL="http://your_username:your_password@isp.decodo.com:10001"
 # or
-DECODO_USERNAME="sp98ilsn7j"
-DECODO_PASSWORD="g9t4Vv7eu_QXf7sOve"
+DECODO_USERNAME="your_username"
+DECODO_PASSWORD="your_password"
 DECODO_HOST="isp.decodo.com"
 DECODO_PORT_START=10001
 DECODO_PORT_END=10010
@@ -132,6 +138,9 @@ Options:
   -f, --format <str>            Output format: 'all', 'json', 'markdown', or 'yaml' [default: all]
       --headless / --no-headless Run browser in headless or visible mode [default: headless]
       --real-chrome / --no-real-chrome Use installed Google Chrome executable
+  -d, --delay <float>           Post-load stabilization delay in seconds [default: 2.0]
+      --auto-scroll / --no-auto-scroll Progressively scroll page to trigger lazy loading [default: auto-scroll]
+      --explore / --no-explore  Detect and independently explore sophisticated features [default: explore]
   -v, --verbose                 Enable verbose debug logging
       --help                    Show this message and exit.
 ```
