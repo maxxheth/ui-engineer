@@ -267,6 +267,7 @@ class ScraplingEngine:
                 if isinstance(raw_body, bytes)
                 else str(raw_body)
             )
+            self._action_data["raw_html"] = html_text
         except Exception as e:
             logger.error("Scrapling fetch failed for %s: %s", self.url, e)
             raise

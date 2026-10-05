@@ -302,3 +302,135 @@ class SiteBlueprint(BaseModel):
         default=None,
         description="Relative or absolute path to the captured full-page screenshot",
     )
+
+
+class ComponentProp(BaseModel):
+    """Inferred property or parameter for a synthesized component."""
+
+    name: str = Field(description="Property name (e.g. 'title', 'items', 'variant')")
+    prop_type: str = Field(
+        description="Inferred TypeScript type (e.g. 'string', 'string[]', 'boolean', 'ReactNode')",
+    )
+    required: bool = Field(default=True, description="Whether this prop is universally required")
+    description: str = Field(default="", description="Functional description of the prop")
+
+
+class SiteComponent(BaseModel):
+    """Synthesized reusable component discovered across one or more pages."""
+
+    name: str = Field(
+        description="Component name in PascalCase (e.g. 'GlobalNavbar', 'FeatureCard', 'PricingTable')",
+    )
+    category: Literal[
+        "navigation",
+        "footer",
+        "card",
+        "hero",
+        "section",
+        "disclosure",
+        "modal",
+        "form",
+        "carousel",
+        "banner",
+        "unknown",
+    ] = Field(default="unknown", description="Semantic component archetype")
+    description: str = Field(description="Architectural description and purpose")
+    occurrences: int = Field(
+        default=1,
+        description="Total number of times this component appears across crawled pages",
+    )
+    pages_found: list[str] = Field(
+        default_factory=list,
+        description="List of page URLs or paths where this component is used",
+    )
+    suggested_props: list[ComponentProp] = Field(
+        default_factory=list,
+        description="Inferred TypeScript props interface",
+    )
+    layout_hint: str | None = Field(
+        default=None,
+        description="CSS layout pattern (e.g. 'grid(3 cols)', 'flex-row')",
+    )
+    sample_content: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Concrete sample data extracted from instances",
+    )
+    subcomponents: list[str] = Field(
+        default_factory=list,
+        description="Child component names if compound (e.g. ['AccordionTrigger', 'AccordionContent'])",
+    )
+
+
+class CrawledPageSummary(BaseModel):
+    """Summary of an individual page within a multi-page crawl."""
+
+    url: str = Field(description="URL of the crawled page")
+    slug: str = Field(description="Filesystem-safe identifier/slug for the page")
+    path: str = Field(description="URL pathname (e.g. '/', '/pricing')")
+    title: str = Field(default="", description="Resolved page title")
+    status_code: int = Field(default=200, description="HTTP response status code")
+    landmark_count: int = Field(
+        default=0,
+        description="Number of primary landmark sections extracted",
+    )
+    pattern_count: int = Field(
+        default=0,
+        description="Number of repetitive pattern instances found",
+    )
+    features_detected: list[str] = Field(
+        default_factory=list,
+        description="Names of sophisticated features detected on this page",
+    )
+    screenshot_path: str | None = Field(
+        default=None,
+        description="Path to captured screenshot for this page",
+    )
+    blueprint_path: str = Field(description="Path to detailed page blueprint artifact")
+
+
+class SiteDesignSystem(BaseModel):
+    """Consolidated cross-page design system and component evidence manifest."""
+
+    entry_url: str = Field(description="Root/starting URL for the crawl")
+    domain: str = Field(description="Target site domain/hostname")
+    total_pages_crawled: int = Field(
+        description="Total number of successfully crawled pages",
+    )
+    tokens: DesignTokens = Field(
+        description="Consolidated global design tokens aggregated across all pages",
+    )
+    global_components: list[SiteComponent] = Field(
+        default_factory=list,
+        description="Shared layout shells found across the entire site (e.g. GlobalNavbar, GlobalFooter)",
+    )
+    reusable_components: list[SiteComponent] = Field(
+        default_factory=list,
+        description="Modular reusable UI components cataloged from patterns across multiple pages",
+    )
+    motion_and_runtimes: list[str] = Field(
+        default_factory=list,
+        description="Consolidated motion runtimes, physics, and libraries detected site-wide",
+    )
+    sophisticated_features: list[SophisticatedFeature] = Field(
+        default_factory=list,
+        description="Deduplicated inventory of interactive systems, sticky tracks, and drawers found across the site",
+    )
+    external_assets: list[ExternalProductionAsset] = Field(
+        default_factory=list,
+        description="Deduplicated external 3D models, motion files, videos, and canvases across all pages",
+    )
+    pages: list[CrawledPageSummary] = Field(
+        default_factory=list,
+        description="Summary index of all crawled pages",
+    )
+
+
+class MultiPageCrawlResult(BaseModel):
+    """Complete multi-page crawl result combining the unified design system and individual page blueprints."""
+
+    design_system: SiteDesignSystem
+    pages: dict[str, SiteBlueprint] = Field(
+        default_factory=dict,
+        description="Mapping of page URL to complete SiteBlueprint",
+    )
+    crawl_timestamp: str = Field(description="ISO 8601 execution timestamp")

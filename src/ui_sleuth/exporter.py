@@ -9,7 +9,11 @@ from typing import Any
 
 import yaml
 
-from ui_sleuth.models import SectionBlueprint, SiteBlueprint
+from ui_sleuth.models import (
+    MultiPageCrawlResult,
+    SectionBlueprint,
+    SiteBlueprint,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -265,4 +269,334 @@ def export_blueprint(
         saved_paths["yaml"] = yaml_file
         logger.info("Saved blueprint YAML to %s", yaml_file)
 
+    return saved_paths
+
+
+def generate_site_design_system_markdown(crawl_result: MultiPageCrawlResult) -> str:
+    """Generate an LLM-ready context block for vibe-coding the site design system and component library."""
+    ds = crawl_result.design_system
+    tokens = ds.tokens
+
+    lines: list[str] = [
+        "# SYSTEM PROMPT: MULTI-PAGE COMPONENT SYSTEM & DESIGN SYSTEM BLUEPRINT",
+        "",
+        "> You are an elite principal design technologist and full-stack React/Next.js systems architect.",
+        f"> Reconstruct the complete design system and multi-page application for `{ds.domain}`",
+        "> with pixel-perfect design token alignment, modular component architecture, and comprehensive interaction fidelity.",
+        "",
+        "---",
+        "",
+        "## 1. EXECUTIVE SITE ARCHITECTURE & CRAWL METRICS",
+        f"- **Root Entry URL:** `{ds.entry_url}`",
+        f"- **Domain:** `{ds.domain}`",
+        f"- **Total Crawled Pages:** `{ds.total_pages_crawled}`",
+        f"- **Crawl Timestamp:** `{crawl_result.crawl_timestamp}`",
+        "",
+        "### Crawled Route Inventory:",
+        "| Route | Page Title | HTTP | Landmarks | Patterns | Features |",
+        "|---|---|---|---|---|---|",
+    ]
+
+    for p in ds.pages:
+        features_str = ", ".join(f"`{f}`" for f in p.features_detected[:2]) or "Standard"
+        lines.append(
+            f"| `{p.path}` | {p.title or 'N/A'} | `{p.status_code}` | {p.landmark_count} | {p.pattern_count} | {features_str} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## 2. CONSOLIDATED GLOBAL DESIGN TOKENS",
+            "",
+            "### A. Unified Color Palette",
+            "- **Backgrounds:** "
+            + (", ".join(f"`{c}`" for c in tokens.colors.backgrounds) or "None detected"),
+            "- **Surfaces & Cards:** "
+            + (", ".join(f"`{c}`" for c in tokens.colors.surfaces) or "None detected"),
+            "- **Text & Content:** "
+            + (", ".join(f"`{c}`" for c in tokens.colors.text) or "None detected"),
+            "- **Accents & CTAs:** "
+            + (", ".join(f"`{c}`" for c in tokens.colors.accents) or "None detected"),
+            "",
+            "### B. Unified Typography Stack",
+            f"- **Primary Font Family:** `{tokens.typography.primary_font_family}`",
+            f"- **Secondary Font Family:** `{tokens.typography.secondary_font_family or 'Same as primary'}`",
+            f"- **Base Font Size:** `{tokens.typography.base_font_size}`",
+            f"- **Base Line Height:** `{tokens.typography.base_line_height}`",
+            "",
+            "#### Header Scales:",
+        ]
+    )
+
+    if tokens.typography.header_scales:
+        for _, scale in sorted(tokens.typography.header_scales.items()):
+            lines.append(
+                f"- **`<{scale.tag}>`:** {scale.font_size} / weight {scale.font_weight} (line-height: {scale.line_height})"
+            )
+    else:
+        lines.append("- *(No specific header scales sampled)*")
+
+    lines.extend(
+        [
+            "",
+            "### C. Spacing, Elevation & Custom Properties",
+            "- **Dominant Border Radii:** "
+            + (
+                ", ".join(f"`{r}`" for r in tokens.spacing_elevation.dominant_border_radii)
+                or "None"
+            ),
+            "- **Box Shadows:** "
+            + (", ".join(f"`{s}`" for s in tokens.spacing_elevation.box_shadows[:3]) or "None"),
+        ]
+    )
+
+    if tokens.custom_properties:
+        lines.extend(
+            [
+                "",
+                "#### Detected CSS Variables (:root):",
+            ]
+        )
+        for k, v in sorted(tokens.custom_properties.items()):
+            lines.append(f"- `{k}: {v};`")
+
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## 3. GLOBAL LAYOUT SHELL COMPONENTS",
+        ]
+    )
+
+    if ds.global_components:
+        for comp in ds.global_components:
+            lines.extend(
+                [
+                    f"### Component: `<{comp.name} />`",
+                    f"- **Category:** `{comp.category}`",
+                    f"- **Description:** {comp.description}",
+                    f"- **Site-Wide Occurrences:** Present on {comp.occurrences} crawled pages",
+                    f"- **Layout Pattern:** `{comp.layout_hint or 'flexible shell'}`",
+                    "",
+                    "#### Suggested TypeScript Props Interface:",
+                    "```typescript",
+                    f"interface {comp.name}Props {{",
+                ]
+            )
+            for prop in comp.suggested_props:
+                opt = "" if prop.required else "?"
+                lines.append(f"  {prop.name}{opt}: {prop.prop_type}; // {prop.description}")
+            lines.extend(
+                [
+                    "}",
+                    "```",
+                    "",
+                ]
+            )
+    else:
+        lines.append("- *(No persistent global layout shells detected)*\n")
+
+    lines.extend(
+        [
+            "---",
+            "",
+            "## 4. REUSABLE MODULAR COMPONENT LIBRARY",
+        ]
+    )
+
+    if ds.reusable_components:
+        for comp in ds.reusable_components:
+            lines.extend(
+                [
+                    f"### Component: `<{comp.name} />`",
+                    f"- **Archetype:** `{comp.category}`",
+                    f"- **Total Rendered Instances:** {comp.occurrences} instances across {len(comp.pages_found)} page(s)",
+                    "- **Pages Used In:** " + (", ".join(f"`{p}`" for p in comp.pages_found[:4])),
+                    f"- **Layout Hint:** `{comp.layout_hint or 'card / flex'}`",
+                    "",
+                    "#### Suggested TypeScript Interface:",
+                    "```typescript",
+                    f"interface {comp.name}Props {{",
+                ]
+            )
+            for prop in comp.suggested_props:
+                opt = "" if prop.required else "?"
+                lines.append(f"  {prop.name}{opt}: {prop.prop_type};")
+            lines.extend(
+                [
+                    "}",
+                    "```",
+                    "",
+                    "#### Sample Extracted Content:",
+                    "```json",
+                    json.dumps(comp.sample_content, indent=2),
+                    "```",
+                    "",
+                ]
+            )
+    else:
+        lines.append("- *(No repetitive card/section patterns identified)*\n")
+
+    lines.extend(
+        [
+            "---",
+            "",
+            "## 5. MOTION, PHYSICS & INTERACTIVE SYSTEMS",
+        ]
+    )
+
+    if ds.motion_and_runtimes:
+        lines.append(
+            "- **Detected Motion Runtimes:** "
+            + ", ".join(f"`{eng}`" for eng in ds.motion_and_runtimes)
+        )
+    else:
+        lines.append("- **Detected Motion Runtimes:** Standard CSS Transitions / Native DOM")
+
+    if ds.sophisticated_features:
+        lines.extend(
+            [
+                "",
+                "### Interactive Features Catalog:",
+            ]
+        )
+        for feat in ds.sophisticated_features:
+            lines.extend(
+                [
+                    f"- **`{feat.name}`** (`{feat.category}`): {feat.description}",
+                    f"  - Selector: `{feat.selector}`",
+                    f"  - Recommended Implementation: {feat.suggested_implementation}",
+                ]
+            )
+    else:
+        lines.append("- *(No advanced sticky scroll tracks or off-screen drawers detected)*")
+
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## 6. EXTERNAL ASSETS & RICH MEDIA",
+        ]
+    )
+
+    if ds.external_assets:
+        for asset in ds.external_assets:
+            lines.extend(
+                [
+                    f"- **Discipline:** `{asset.category.upper()}`",
+                    f"  - Engines: {', '.join(asset.detected_engines)}",
+                    f"  - Suggested Wrapper: `{asset.suggested_react_wrapper}`",
+                    "  - Asset URLs: "
+                    + (
+                        ", ".join(f"`{u}`" for u in asset.direct_asset_urls[:2])
+                        or "None directly intercepted"
+                    ),
+                ]
+            )
+    else:
+        lines.append("- *(No external 3D, Rive, or background video streams detected)*")
+
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## 7. SYSTEM RECONSTRUCTION WORKFLOW",
+            "1. **Core Tokens (`tailwind.config.js` or theme file):** Map the extracted primary color palette, font families, and radius tokens into your design system.",
+            "2. **Layout Shell:** Build `<GlobalNavbar />` and `<GlobalFooter />` with persistent routes.",
+            "3. **Component Library:** Implement the modular components from Section 4 (`FeatureCard`, `PricingCard`, etc.) in a `components/` directory using the provided TypeScript interfaces.",
+            "4. **Interactive Systems:** Wire up motion and drawers as documented in Section 5 with Framer Motion or GSAP ScrollTrigger.",
+            "5. **Assemble Routes:** Compose each route in `app/` (or `pages/`) by instantiating the components with mock or API data.",
+            "",
+        ]
+    )
+
+    return "\n".join(lines)
+
+
+def export_site_design_system(
+    crawl_result: MultiPageCrawlResult,
+    output_dir: str | Path,
+    export_json: bool = True,
+    export_markdown: bool = True,
+    export_yaml: bool = True,
+) -> dict[str, Path]:
+    """Export the multi-page crawl results into a unified design system and per-page blueprints."""
+    out_path = Path(output_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    saved_paths: dict[str, Path] = {}
+    ds = crawl_result.design_system
+
+    # 1. site_design_system.json
+    if export_json:
+        json_file = out_path / "site_design_system.json"
+        json_content = ds.model_dump_json(indent=2)
+        json_file.write_text(json_content, encoding="utf-8")
+        saved_paths["design_system_json"] = json_file
+
+        # Convenience alias blueprint.json
+        bp_json = out_path / "blueprint.json"
+        bp_json.write_text(json_content, encoding="utf-8")
+        saved_paths["blueprint_json"] = bp_json
+
+        # manifest.json
+        manifest_file = out_path / "manifest.json"
+        manifest_data = {
+            "entry_url": ds.entry_url,
+            "domain": ds.domain,
+            "total_pages_crawled": ds.total_pages_crawled,
+            "timestamp": crawl_result.crawl_timestamp,
+            "pages": [p.model_dump() for p in ds.pages],
+        }
+        manifest_file.write_text(json.dumps(manifest_data, indent=2), encoding="utf-8")
+        saved_paths["manifest_json"] = manifest_file
+
+    # 2. site_design_system.md
+    if export_markdown:
+        md_file = out_path / "site_design_system.md"
+        md_content = generate_site_design_system_markdown(crawl_result)
+        md_file.write_text(md_content, encoding="utf-8")
+        saved_paths["design_system_markdown"] = md_file
+
+        # Convenience alias blueprint.md
+        bp_md = out_path / "blueprint.md"
+        bp_md.write_text(md_content, encoding="utf-8")
+        saved_paths["blueprint_markdown"] = bp_md
+
+    # 3. site_design_system.yaml
+    if export_yaml:
+        yaml_file = out_path / "site_design_system.yaml"
+        ds_data: dict[str, Any] = ds.model_dump(mode="json")
+        yaml_content = yaml.dump(ds_data, sort_keys=False, allow_unicode=True)
+        yaml_file.write_text(yaml_content, encoding="utf-8")
+        saved_paths["design_system_yaml"] = yaml_file
+
+        # Convenience alias blueprint.yaml
+        bp_yaml = out_path / "blueprint.yaml"
+        bp_yaml.write_text(yaml_content, encoding="utf-8")
+        saved_paths["blueprint_yaml"] = bp_yaml
+
+    # 4. Individual per-page blueprints in output_dir / "pages" / <slug>
+    for page_url, bp in crawl_result.pages.items():
+        page_summary = next((p for p in ds.pages if p.url == page_url), None)
+        slug = page_summary.slug if page_summary else "page"
+        page_dir = out_path / "pages" / slug
+        page_dir.mkdir(parents=True, exist_ok=True)
+
+        if export_json:
+            (page_dir / "blueprint.json").write_text(bp.model_dump_json(indent=2), encoding="utf-8")
+        if export_markdown:
+            (page_dir / "blueprint.md").write_text(generate_llm_markdown(bp), encoding="utf-8")
+        if export_yaml:
+            p_data: dict[str, Any] = bp.model_dump(mode="json")
+            (page_dir / "blueprint.yaml").write_text(
+                yaml.dump(p_data, sort_keys=False, allow_unicode=True), encoding="utf-8"
+            )
+
+    logger.info("Successfully exported multi-page site design system to %s", out_path)
     return saved_paths

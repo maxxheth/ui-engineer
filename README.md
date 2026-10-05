@@ -58,6 +58,13 @@
    - `blueprint.md`: LLM-ready context block with embedded vibe-coding instructions, ready to copy-paste directly into Claude, GPT-4, or Gemini.
    - `blueprint.yaml`: Ultra-dense YAML representation for minimal token consumption.
 
+8. **Multi-Page Site Crawl & Component System Synthesis (`crawler.py`)**
+   - **Internal Route Discovery**: Explores internal links with intelligent architectural prioritization (nav and header links to `/pricing`, `/features`, `/about`, `/docs` over deep pagination).
+   - **Cross-Page Design Tokens**: Synthesizes global color palettes with frequency analysis, typography hierarchies, and root CSS custom variables across all crawled pages.
+   - **Component System Catalog**: Inters and synthesizes global layout shells (`GlobalNavbar`, `GlobalFooter`) and reusable modular components (`FeatureCard`, `PricingCard`, `AccordionFAQ`) with inferred TypeScript props interfaces and concrete sample content.
+   - **Site-Wide Motion & Asset Manifest**: Deduplicates motion runtimes (GSAP, Lenis, Three.js, Lottie), sticky scroll tracks, offscreen drawers, and external 3D/video assets.
+   - **Multi-Page Artifacts**: Generates `site_design_system.json`, `site_design_system.yaml`, `site_design_system.md`, `manifest.json`, and per-page detailed blueprints in `pages/<slug>/`.
+
 ---
 
 ## 🚀 Quickstart
@@ -73,9 +80,19 @@ cd ui-sleuth
 uv sync
 ```
 
-### Basic Extraction
+### Basic Extraction (Single Page)
 ```bash
 uv run ui-sleuth extract https://example.com --output ./output --screenshot
+```
+
+### Multi-Page Crawl & Design System Synthesis
+Crawl multiple pages to synthesize a unified component system and global design tokens:
+```bash
+# Dedicated crawl command
+uv run ui-sleuth crawl https://example.com --max-pages 5 --max-depth 2 --output ./output --screenshot
+
+# Or via extract with --crawl
+uv run ui-sleuth extract https://example.com --crawl --max-pages 5 --screenshot
 ```
 
 ### Using Wait Conditions & Viewport
@@ -121,6 +138,7 @@ uv run ui-sleuth extract https://protected-site.com --stealth
 
 ## 📋 CLI Reference
 
+### `ui-sleuth extract`
 ```
 Usage: ui-sleuth extract [OPTIONS] [url]
 
@@ -128,6 +146,36 @@ Options:
   -u, --url <str>               Target URL (alternative to positional argument)
   -o, --output <path>           Output directory for generated blueprints [default: output]
   -s, --screenshot              Capture a full-page screenshot alongside the blueprint
+      --wait-until <str>        Wait condition: 'networkidle', 'load', or CSS selector [default: networkidle]
+  -t, --timeout <int>           Timeout in seconds [default: 30]
+      --viewport <str>          Emulated viewport dimensions (WIDTHxHEIGHT) [default: 1440x900]
+      --proxy <str>             Single proxy URL
+      --proxy-file <str>        Path to text file containing proxy URLs
+      --decodo                  Enable Decodo ISP proxy integration
+      --stealth                 Use StealthyFetcher to bypass Cloudflare
+  -f, --format <str>            Output format: 'all', 'json', 'markdown', or 'yaml' [default: all]
+      --headless / --no-headless Run browser in headless or visible mode [default: headless]
+      --real-chrome / --no-real-chrome Use installed Google Chrome executable
+  -d, --delay <float>           Post-load stabilization delay in seconds [default: 2.0]
+      --auto-scroll / --no-auto-scroll Progressively scroll page to trigger lazy loading [default: auto-scroll]
+      --explore / --no-explore  Detect and independently explore sophisticated features [default: explore]
+      --crawl                   Enable multi-page site crawl to gather component and layout evidence
+  -m, --max-pages <int>         Maximum number of pages to crawl [default: 1 for single, 5 for crawl]
+      --max-depth <int>         Maximum crawl link depth for internal link discovery [default: 2]
+  -v, --verbose                 Enable verbose debug logging
+      --help                    Show this message and exit.
+```
+
+### `ui-sleuth crawl`
+```
+Usage: ui-sleuth crawl [OPTIONS] [url]
+
+Options:
+  -u, --url <str>               Target URL (alternative to positional argument)
+  -o, --output <path>           Output directory for generated blueprints [default: output]
+  -m, --max-pages <int>         Maximum number of pages to crawl across the site [default: 5]
+      --max-depth <int>         Maximum crawl link depth for internal link discovery [default: 2]
+  -s, --screenshot              Capture full-page screenshots alongside blueprints
       --wait-until <str>        Wait condition: 'networkidle', 'load', or CSS selector [default: networkidle]
   -t, --timeout <int>           Timeout in seconds [default: 30]
       --viewport <str>          Emulated viewport dimensions (WIDTHxHEIGHT) [default: 1440x900]
