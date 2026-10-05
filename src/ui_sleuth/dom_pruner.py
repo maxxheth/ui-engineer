@@ -9,7 +9,7 @@ from typing import Any
 from lxml import html
 from lxml.html import HtmlElement
 
-from site_blueprint.models import (
+from ui_sleuth.models import (
     InteractionMetadata,
     PatternSchema,
     SectionBlueprint,

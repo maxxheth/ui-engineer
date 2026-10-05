@@ -5,8 +5,8 @@ import socketserver
 import threading
 from pathlib import Path
 
-from site_blueprint.exporter import export_blueprint
-from site_blueprint.scrapling_engine import ScraplingEngine
+from ui_sleuth.exporter import export_blueprint
+from ui_sleuth.scrapling_engine import ScraplingEngine
 
 E2E_HTML = """<!DOCTYPE html>
 <html>

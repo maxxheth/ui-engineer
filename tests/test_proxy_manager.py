@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from site_blueprint.proxy_manager import (
+from ui_sleuth.proxy_manager import (
     ProxyConfig,
     build_decodo_url,
     generate_decodo_pool,

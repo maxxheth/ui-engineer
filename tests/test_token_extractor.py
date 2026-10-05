@@ -1,6 +1,6 @@
 """Tests for token_extractor module."""
 
-from site_blueprint.token_extractor import extract_tokens_from_dict, normalize_font_family
+from ui_sleuth.token_extractor import extract_tokens_from_dict, normalize_font_family
 
 
 def test_normalize_font_family():

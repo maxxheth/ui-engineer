@@ -5,8 +5,8 @@ from pathlib import Path
 
 import yaml
 
-from site_blueprint.exporter import export_blueprint, generate_llm_markdown
-from site_blueprint.models import (
+from ui_sleuth.exporter import export_blueprint, generate_llm_markdown
+from ui_sleuth.models import (
     ColorPalette,
     DesignTokens,
     ExternalProductionAsset,

@@ -1,6 +1,6 @@
 """Tests for dom_pruner module."""
 
-from site_blueprint.dom_pruner import (
+from ui_sleuth.dom_pruner import (
     prune_and_map_dom,
 )
 

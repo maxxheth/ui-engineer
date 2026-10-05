@@ -1,4 +1,4 @@
-"""Proxy and Decodo infrastructure management for site-blueprint."""
+"""Proxy and Decodo infrastructure management for UI Sleuth."""
 
 from __future__ import annotations
 

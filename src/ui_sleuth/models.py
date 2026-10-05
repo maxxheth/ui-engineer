@@ -1,4 +1,4 @@
-"""Strict Pydantic data models for site-blueprint specifications."""
+"""Strict Pydantic data models for UI Sleuth specifications."""
 
 from __future__ import annotations
 

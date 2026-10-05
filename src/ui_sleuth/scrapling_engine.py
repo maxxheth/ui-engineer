@@ -10,20 +10,20 @@ from typing import TYPE_CHECKING, Any
 
 from scrapling import DynamicFetcher, StealthyFetcher
 
-from site_blueprint.asset_inspector import (
+from ui_sleuth.asset_inspector import (
     NetworkAssetCollector,
     inspect_canvas_and_video,
     synthesize_production_assets,
 )
-from site_blueprint.dom_pruner import prune_and_map_dom
-from site_blueprint.feature_detector import detect_and_explore_features
-from site_blueprint.models import (
+from ui_sleuth.dom_pruner import prune_and_map_dom
+from ui_sleuth.feature_detector import detect_and_explore_features
+from ui_sleuth.models import (
     DesignTokens,
     SiteBlueprint,
     SiteMetadata,
 )
-from site_blueprint.proxy_manager import ProxyConfig, resolve_proxy_config
-from site_blueprint.token_extractor import harvest_design_tokens
+from ui_sleuth.proxy_manager import ProxyConfig, resolve_proxy_config
+from ui_sleuth.token_extractor import harvest_design_tokens
 
 if TYPE_CHECKING:
     from playwright.sync_api import Page

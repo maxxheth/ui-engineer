@@ -1,6 +1,6 @@
-"""Tests for Pydantic models in site_blueprint."""
+"""Tests for Pydantic models in ui_sleuth."""
 
-from site_blueprint.models import (
+from ui_sleuth.models import (
     ColorPalette,
     ColorToken,
     DesignTokens,

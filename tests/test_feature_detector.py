@@ -2,9 +2,9 @@
 
 from unittest.mock import MagicMock
 
-from site_blueprint.exporter import generate_llm_markdown
-from site_blueprint.feature_detector import detect_and_explore_features
-from site_blueprint.models import (
+from ui_sleuth.exporter import generate_llm_markdown
+from ui_sleuth.feature_detector import detect_and_explore_features
+from ui_sleuth.models import (
     DesignTokens,
     SiteBlueprint,
     SiteMetadata,

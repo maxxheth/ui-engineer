@@ -6,7 +6,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any
 
-from site_blueprint.models import (
+from ui_sleuth.models import (
     ColorPalette,
     ColorToken,
     DesignTokens,

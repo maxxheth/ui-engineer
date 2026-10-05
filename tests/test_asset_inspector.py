@@ -1,6 +1,6 @@
 """Tests for asset_inspector module."""
 
-from site_blueprint.asset_inspector import (
+from ui_sleuth.asset_inspector import (
     NetworkAssetCollector,
     synthesize_production_assets,
 )

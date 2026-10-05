@@ -1,4 +1,4 @@
-"""Multimodal exporter for site-blueprint: JSON, YAML, and LLM Markdown blocks."""
+"""Multimodal exporter for UI Sleuth: JSON, YAML, and LLM Markdown blocks."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from site_blueprint.models import SectionBlueprint, SiteBlueprint
+from ui_sleuth.models import SectionBlueprint, SiteBlueprint
 
 logger = logging.getLogger(__name__)
 

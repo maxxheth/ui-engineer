@@ -1,4 +1,4 @@
-"""Command Line Interface for site-blueprint using Typer."""
+"""Command Line Interface for UI Sleuth using Typer."""
 
 from __future__ import annotations
 
@@ -11,13 +11,14 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from site_blueprint.exporter import export_blueprint
-from site_blueprint.proxy_manager import resolve_proxy_config
-from site_blueprint.scrapling_engine import ScraplingEngine
+from ui_sleuth.exporter import export_blueprint
+from ui_sleuth.proxy_manager import resolve_proxy_config
+from ui_sleuth.scrapling_engine import ScraplingEngine
 
 app = typer.Typer(
-    name="site-blueprint",
-    help="Reverse-engineer live web pages into ultra-dense, token-optimized LLM context blueprints.",
+    name="ui-sleuth",
+    help="UI Sleuth: Reverse-engineer live web pages into ultra-dense, token-optimized LLM context blueprints.",
+    no_args_is_help=True,
     add_completion=False,
 )
 
@@ -149,7 +150,7 @@ def extract(
 
     console.print(
         Panel.fit(
-            f"[bold cyan]site-blueprint[/bold cyan] [green]v0.1.0[/green]\n"
+            f"[bold cyan]ui-sleuth[/bold cyan] [green]v0.1.0[/green]\n"
             f"Target: [bold]{target_url}[/bold]\n"
             f"Output: [yellow]{output}[/yellow]\n"
             f"Wait condition: [magenta]{wait_until}[/magenta] | Viewport: [blue]{viewport}[/blue]",
@@ -249,8 +250,8 @@ def extract(
 
 @app.command()
 def version() -> None:
-    """Show the site-blueprint version."""
-    console.print("[bold cyan]site-blueprint[/bold cyan] version [green]0.1.0[/green]")
+    """Show the ui-sleuth version."""
+    console.print("[bold cyan]ui-sleuth[/bold cyan] version [green]0.1.0[/green]")
 
 
 def main() -> None:

@@ -2,7 +2,7 @@
 
 from typer.testing import CliRunner
 
-from site_blueprint.cli import app
+from ui_sleuth.cli import app
 
 runner = CliRunner()
 

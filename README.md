@@ -1,8 +1,8 @@
-# site-blueprint 🛠️✨
+# UI Sleuth 🕵️‍♂️✨
 
 > **Reverse-engineer live web pages into ultra-dense, token-optimized JSON/YAML context blueprints specifically designed for downstream LLMs and "vibe-coding" automated UI reconstruction.**
 
-`site-blueprint` is a specialized automation tool and Python package built on modern standards (`uv`, `scrapling`, `pydantic`, `typer`). It bridges the gap between raw web scraping and LLM context windows by extracting design tokens, pruning DOM boilerplate, deduplicating repetitive UI patterns (e.g. card grids), and diagnosing external production disciplines (Three.js 3D models, Rive/Lottie vector animations, WebGL canvases, and background video loops).
+`UI Sleuth` (`ui-sleuth`) is a specialized automation tool and Python package built on modern standards (`uv`, `scrapling`, `pydantic`, `typer`). It bridges the gap between raw web scraping and LLM context windows by extracting design tokens, pruning DOM boilerplate, deduplicating repetitive UI patterns (e.g. card grids), and diagnosing external production disciplines (Three.js 3D models, Rive/Lottie vector animations, WebGL canvases, and background video loops).
 
 ---
 
@@ -68,19 +68,19 @@
 
 ### Installation
 ```bash
-git clone <repo-url>
-cd ui-engineer
+git clone git@github.com:maxxheth/ui-sleuth.git
+cd ui-sleuth
 uv sync
 ```
 
 ### Basic Extraction
 ```bash
-uv run site-blueprint extract https://example.com --output ./output --screenshot
+uv run ui-sleuth extract https://example.com --output ./output --screenshot
 ```
 
 ### Using Wait Conditions & Viewport
 ```bash
-uv run site-blueprint extract https://example.com \
+uv run ui-sleuth extract https://example.com \
   --output ./output \
   --wait-until networkidle \
   --timeout 30 \
@@ -92,13 +92,13 @@ uv run site-blueprint extract https://example.com \
 Pass a single proxy, a proxy list file, or enable Decodo environment variables:
 ```bash
 # Direct proxy URL
-uv run site-blueprint extract https://example.com --proxy "http://username:password@isp.decodo.com:10001"
+uv run ui-sleuth extract https://example.com --proxy "http://username:password@isp.decodo.com:10001"
 
 # Load pool from file (rotates across ports round-robin)
-uv run site-blueprint extract https://example.com --proxy-file ./proxies.txt
+uv run ui-sleuth extract https://example.com --proxy-file ./proxies.txt
 
 # Automatically use Decodo proxy configuration
-uv run site-blueprint extract https://example.com --decodo
+uv run ui-sleuth extract https://example.com --decodo
 ```
 
 Environment variables supported in `.env`:
@@ -114,7 +114,7 @@ DECODO_PORT_END=10010
 
 ### Stealth Mode (Cloudflare Turnstile Bypass)
 ```bash
-uv run site-blueprint extract https://protected-site.com --stealth
+uv run ui-sleuth extract https://protected-site.com --stealth
 ```
 
 ---
@@ -122,7 +122,7 @@ uv run site-blueprint extract https://protected-site.com --stealth
 ## 📋 CLI Reference
 
 ```
-Usage: site-blueprint extract [OPTIONS] [url]
+Usage: ui-sleuth extract [OPTIONS] [url]
 
 Options:
   -u, --url <str>               Target URL (alternative to positional argument)

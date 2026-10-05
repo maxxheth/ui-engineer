@@ -7,7 +7,7 @@ import re
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-from site_blueprint.models import ExternalProductionAsset
+from ui_sleuth.models import ExternalProductionAsset
 
 if TYPE_CHECKING:
     from playwright.sync_api import Page

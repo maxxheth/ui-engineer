@@ -1,5 +1,5 @@
 [project]
-name = "site-blueprint"
+name = "ui-sleuth"
 version = "0.1.0"
 description = "Reverse-engineering live web pages into ultra-dense, token-optimized LLM context blueprints"
 readme = "README.md"
@@ -16,7 +16,8 @@ dependencies = [
 ]
 
 [project.scripts]
-site-blueprint = "site_blueprint.cli:app"
+ui-sleuth = "ui_sleuth.cli:app"
+site-blueprint = "ui_sleuth.cli:app"
 
 [build-system]
 requires = ["uv_build>=0.11.6,<0.12.0"]

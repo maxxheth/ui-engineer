@@ -1,11 +1,11 @@
-"""site-blueprint: Reverse-engineering live web pages into token-optimized LLM context blueprints."""
+"""UI Sleuth: Reverse-engineering live web pages into token-optimized LLM context blueprints."""
 
 from __future__ import annotations
 
 import warnings
 
-from site_blueprint.cli import app, main
-from site_blueprint.models import (
+from ui_sleuth.cli import app, main
+from ui_sleuth.models import (
     ColorPalette,
     ColorToken,
     DesignTokens,
@@ -19,8 +19,8 @@ from site_blueprint.models import (
     SpacingElevationTokens,
     TypographyTokens,
 )
-from site_blueprint.proxy_manager import ProxyConfig, resolve_proxy_config
-from site_blueprint.scrapling_engine import ScraplingEngine
+from ui_sleuth.proxy_manager import ProxyConfig, resolve_proxy_config
+from ui_sleuth.scrapling_engine import ScraplingEngine
 
 # Suppress known upstream deprecation warning in lxml 6.x when invoked by Scrapling
 warnings.filterwarnings(

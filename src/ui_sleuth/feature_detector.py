@@ -7,7 +7,7 @@ from typing import Any
 
 from playwright.sync_api import Page
 
-from site_blueprint.models import SophisticatedFeature, SophisticatedFeaturesSummary
+from ui_sleuth.models import SophisticatedFeature, SophisticatedFeaturesSummary
 
 logger = logging.getLogger(__name__)
 
