@@ -19,7 +19,12 @@ PROBE_SOPHISTICATED_FEATURES_JS = """
         offscreen_drawers: [],
         disclosures: [],
         marquees: [],
-        canvases: []
+        canvases: [],
+        magnetic_elements: [],
+        custom_cursors: [],
+        typographic_reveals: [],
+        hover_media_switchers: [],
+        scroll_parallaxes: []
     };
 
     const viewportHeight = window.innerHeight || 900;
@@ -44,6 +49,9 @@ PROBE_SOPHISTICATED_FEATURES_JS = """
     }
     if (window.THREE || window.__THREE__) {
         results.detected_engines.push('Three.js (WebGL)');
+    }
+    if (window.Matter || window.matter) {
+        results.detected_engines.push('Matter.js (2D Physics)');
     }
     if (document.querySelector('spline-viewer, [data-spline]')) {
         results.detected_engines.push('Spline 3D Runtime');
@@ -252,6 +260,202 @@ PROBE_SOPHISTICATED_FEATURES_JS = """
         });
     }
 
+    // 7. Kinetic Magnetic Elements ([data-magnetic], etc.)
+    const magneticEls = document.querySelectorAll('[data-magnetic], [class*="magnetic"], [data-magnetic-strength]');
+    if (magneticEls.length > 0) {
+        const sampleLabels = [];
+        let dominantStrength = '20';
+        let sampleRect = null;
+        let sampleSelector = '[data-magnetic]';
+
+        magneticEls.forEach((el, idx) => {
+            const str = el.getAttribute('data-magnetic') || el.getAttribute('data-magnetic-strength') || '20';
+            if (idx === 0) {
+                dominantStrength = str;
+                const r = el.getBoundingClientRect();
+                sampleRect = {
+                    top: Math.round(r.top + window.scrollY),
+                    left: Math.round(r.left),
+                    width: Math.round(r.width),
+                    height: Math.round(r.height)
+                };
+                const tag = el.tagName.toLowerCase();
+                const cls = typeof el.className === 'string' ? el.className.split(/\\s+/)[0] : '';
+                sampleSelector = cls ? `${tag}.${cls}[data-magnetic]` : `${tag}[data-magnetic]`;
+            }
+            const txt = (el.innerText || el.getAttribute('aria-label') || '').trim();
+            if (txt && sampleLabels.length < 5) {
+                sampleLabels.push(txt.slice(0, 30));
+            }
+        });
+
+        results.magnetic_elements.push({
+            selector: sampleSelector,
+            count: magneticEls.length,
+            strength: dominantStrength,
+            sample_labels: sampleLabels,
+            dimensions: sampleRect || { top: 0, left: 0, width: 0, height: 0 },
+            description: `Kinetic magnetic cursor physics applied to ${magneticEls.length} interactive elements (strength=${dominantStrength}). Elements pull towards cursor on hover.`
+        });
+    }
+
+    // 8. Custom Interactive Cursor & Floating Image Previews
+    const cursorEls = document.querySelectorAll('.cursor-wrap, .custom-cursor, #cursor, [data-cursor-wrap], [class*="cursor-inner"]');
+    const cursorInteractiveEls = document.querySelectorAll('[data-cursor], [data-cursor-img], [data-cursor-text]');
+    const bodyCursor = window.getComputedStyle(document.body).cursor;
+
+    if (cursorEls.length > 0 || cursorInteractiveEls.length > 0 || bodyCursor === 'none') {
+        const states = new Set();
+        const previewImages = [];
+        let previewCount = 0;
+
+        cursorInteractiveEls.forEach(el => {
+            const st = el.getAttribute('data-cursor');
+            if (st) states.add(st);
+            const img = el.getAttribute('data-cursor-img');
+            if (img) {
+                previewCount++;
+                if (previewImages.length < 5) {
+                    previewImages.push({
+                        imgUrl: img,
+                        ratio: el.getAttribute('data-cursor-img-ratio') || 'auto',
+                        label: (el.innerText || '').trim().slice(0, 30)
+                    });
+                }
+            }
+        });
+
+        let cursorSelector = '.cursor-wrap';
+        let cursorRect = { top: 0, left: 0, width: 24, height: 24 };
+        if (cursorEls.length > 0) {
+            const first = cursorEls[0];
+            const tag = first.tagName.toLowerCase();
+            const cls = typeof first.className === 'string' ? first.className.split(/\\s+/)[0] : '';
+            cursorSelector = cls ? `${tag}.${cls}` : tag;
+            const r = first.getBoundingClientRect();
+            cursorRect = {
+                top: Math.round(r.top + window.scrollY),
+                left: Math.round(r.left),
+                width: Math.round(r.width),
+                height: Math.round(r.height)
+            };
+        }
+
+        results.custom_cursors.push({
+            selector: cursorSelector,
+            dimensions: cursorRect,
+            states: Array.from(states),
+            has_image_preview: previewCount > 0,
+            preview_count: previewCount,
+            sample_preview_images: previewImages,
+            description: `Interactive cursor follower supporting ${states.size} dynamic state(s) (${Array.from(states).join(', ') || 'default'}) and ${previewCount} floating hover image card(s).`
+        });
+    }
+
+    // 9. Typographic SplitText Reveals
+    const splitCandidates = document.querySelectorAll(
+        '.split-text, [data-split], .words, .chars, .lines, ' +
+        '.home-hero-title, .home-abt-title, .ser-hero-title, .ser-why-item-title, .projlist-title, ' +
+        'h1[class*="title"], h2[class*="title"]'
+    );
+    const seenSplit = new Set();
+    splitCandidates.forEach(el => {
+        const tag = el.tagName.toLowerCase();
+        const cls = typeof el.className === 'string' ? el.className.split(/\\s+/)[0] : '';
+        const selector = cls ? `${tag}.${cls}` : tag;
+        if (!seenSplit.has(selector) && seenSplit.size < 6) {
+            seenSplit.add(selector);
+            const r = el.getBoundingClientRect();
+            const txt = (el.innerText || '').trim().slice(0, 80).replace(/[\\r\\n]+/g, ' ');
+            const hasNestedChars = el.querySelectorAll('.char, .chars, [class*="char"]').length > 0;
+            const hasNestedWords = el.querySelectorAll('.word, .words, [class*="word"]').length > 0;
+            const splitType = hasNestedChars ? 'characters' : (hasNestedWords ? 'words' : 'lines/words');
+
+            results.typographic_reveals.push({
+                selector: selector,
+                split_type: splitType,
+                text_preview: txt,
+                count: 1,
+                dimensions: {
+                    top: Math.round(r.top + window.scrollY),
+                    left: Math.round(r.left),
+                    width: Math.round(r.width),
+                    height: Math.round(r.height)
+                },
+                description: `SplitText cascade reveal on "${txt}" split by ${splitType} with staggered upward entrance.`
+            });
+        }
+    });
+
+    // 10. Hover Dynamic Media Switchers
+    const mediaTriggers = document.querySelectorAll(
+        '[data-video="to-play"], [data-thumb-video], [data-video-target], [data-hover-media], [data-preview-media]'
+    );
+    if (mediaTriggers.length > 0) {
+        const mediaUrls = [];
+        let triggerSelector = '[data-video="to-play"]';
+        let sampleRect = { top: 0, left: 0, width: 0, height: 0 };
+        mediaTriggers.forEach((el, idx) => {
+            if (idx === 0) {
+                const tag = el.tagName.toLowerCase();
+                const cls = typeof el.className === 'string' ? el.className.split(/\\s+/)[0] : '';
+                triggerSelector = cls ? `${tag}.${cls}[data-video]` : `${tag}[data-video]`;
+                const r = el.getBoundingClientRect();
+                sampleRect = {
+                    top: Math.round(r.top + window.scrollY),
+                    left: Math.round(r.left),
+                    width: Math.round(r.width),
+                    height: Math.round(r.height)
+                };
+            }
+            const vid = el.getAttribute('data-thumb-video') || el.getAttribute('data-video-url') || el.getAttribute('data-video');
+            if (vid && mediaUrls.length < 5) {
+                mediaUrls.push(vid);
+            }
+        });
+
+        results.hover_media_switchers.push({
+            trigger_selector: triggerSelector,
+            target_selector: '.hero-visual, .media-preview-container',
+            media_samples: mediaUrls,
+            count: mediaTriggers.length,
+            dimensions: sampleRect,
+            description: `Dynamic media switcher where hovering ${mediaTriggers.length} list items dynamically switches active preview media.`
+        });
+    }
+
+    // 11. Scroll Parallax Tracks ([data-move], [data-parallax])
+    const parallaxEls = document.querySelectorAll('[data-move], [data-move-sc], [data-parallax], [data-scroll-speed]');
+    if (parallaxEls.length > 0) {
+        const modes = new Set();
+        let sampleSelector = '[data-move]';
+        let sampleRect = { top: 0, left: 0, width: 0, height: 0 };
+        parallaxEls.forEach((el, idx) => {
+            const m = el.getAttribute('data-move') || el.getAttribute('data-parallax') || 'vertical';
+            modes.add(m);
+            if (idx === 0) {
+                const tag = el.tagName.toLowerCase();
+                const cls = typeof el.className === 'string' ? el.className.split(/\\s+/)[0] : '';
+                sampleSelector = cls ? `${tag}.${cls}[data-move]` : `${tag}[data-move]`;
+                const r = el.getBoundingClientRect();
+                sampleRect = {
+                    top: Math.round(r.top + window.scrollY),
+                    left: Math.round(r.left),
+                    width: Math.round(r.width),
+                    height: Math.round(r.height)
+                };
+            }
+        });
+
+        results.scroll_parallaxes.push({
+            selector: sampleSelector,
+            move_mode: Array.from(modes).join(', '),
+            count: parallaxEls.length,
+            dimensions: sampleRect,
+            description: `Scroll-driven parallax motion on ${parallaxEls.length} elements (modes: ${Array.from(modes).join(', ')}).`
+        });
+    }
+
     return results;
 }
 """
@@ -389,6 +593,140 @@ def detect_and_explore_features(
                 exploration_status="explored",
                 suggested_implementation="Wrap with `@react-three/fiber` / `@react-three/drei` Canvas for WebGL or HTML5 Canvas with requestAnimationFrame loop.",
                 details={"isWebGL": c.get("isWebGL")},
+            )
+        )
+
+    # Kinetic Magnetic Elements
+    magnetic_elements = raw_probe.get("magnetic_elements", [])
+    for mag in magnetic_elements:
+        features.append(
+            SophisticatedFeature(
+                category="magnetic_physics",
+                name=f"Magnetic Cursor Pull Physics ({mag['selector']})",
+                selector=mag["selector"],
+                description=mag["description"],
+                dimensions=mag.get("dimensions", {}),
+                requires_independent_exploration=False,
+                exploration_status="explored",
+                suggested_implementation=(
+                    "Implement with GSAP quickTo or Framer Motion spring physics. On mousemove over target, "
+                    "translate target towards pointer ((clientX - center) / width * strength); on mouseleave, "
+                    "spring back with elastic.out(1, 0.3)."
+                ),
+                details={
+                    "strength": mag.get("strength"),
+                    "sample_labels": mag.get("sample_labels", []),
+                    "count": mag.get("count", 1),
+                },
+            )
+        )
+        recommended.append(
+            f"Add magnetic physics to buttons ({mag['selector']}): Wire elastic spring translation towards pointer on hover."
+        )
+
+    # Custom Interactive Cursors
+    custom_cursors = raw_probe.get("custom_cursors", [])
+    for cur in custom_cursors:
+        features.append(
+            SophisticatedFeature(
+                category="custom_cursor",
+                name=f"Custom Interactive Cursor & Floating Preview ({cur['selector']})",
+                selector=cur["selector"],
+                description=cur["description"],
+                dimensions=cur.get("dimensions", {}),
+                requires_independent_exploration=False,
+                exploration_status="explored",
+                suggested_implementation=(
+                    "Render fixed pointer-events-none cursor follower with lerp coordinates. "
+                    "Expand circle on button hover ([data-cursor='btn']) and display floating thumbnail card "
+                    "when hovering links with [data-cursor-img]."
+                ),
+                details={
+                    "states": cur.get("states", []),
+                    "has_image_preview": cur.get("has_image_preview", False),
+                    "preview_count": cur.get("preview_count", 0),
+                    "sample_preview_images": cur.get("sample_preview_images", []),
+                },
+            )
+        )
+        if cur.get("has_image_preview"):
+            recommended.append(
+                f"Implement floating cursor card preview for project rows ({cur['selector']}): Render thumbnail when hovering [data-cursor-img] targets."
+            )
+
+    # Typographic SplitText Reveals
+    typographic_reveals = raw_probe.get("typographic_reveals", [])
+    for tr in typographic_reveals:
+        features.append(
+            SophisticatedFeature(
+                category="typographic_reveal",
+                name=f"SplitText Typographic Reveal ({tr['selector']})",
+                selector=tr["selector"],
+                description=tr["description"],
+                dimensions=tr.get("dimensions", {}),
+                requires_independent_exploration=False,
+                exploration_status="explored",
+                suggested_implementation=(
+                    "Split heading text into word/character spans inside overflow-hidden wrappers. "
+                    "Animate yPercent: 60 -> 0, opacity: 0 -> 1 with stagger: 0.02 upon viewport entry."
+                ),
+                details={
+                    "split_type": tr.get("split_type"),
+                    "sample_text": tr.get("text_preview"),
+                },
+            )
+        )
+        recommended.append(
+            f"Animate typographic entrance for {tr['selector']}: Stagger characters or words upward using overflow masks."
+        )
+
+    # Dynamic Hover Media Switchers
+    hover_media_switchers = raw_probe.get("hover_media_switchers", [])
+    for hms in hover_media_switchers:
+        features.append(
+            SophisticatedFeature(
+                category="hover_media_switcher",
+                name=f"Dynamic Hover Media Switcher ({hms['trigger_selector']})",
+                selector=hms["trigger_selector"],
+                description=hms["description"],
+                dimensions=hms.get("dimensions", {}),
+                requires_independent_exploration=True,
+                exploration_status="explored" if explore else "detected",
+                suggested_implementation=(
+                    "Listen to mouseenter on client/project list items to dynamically switch and play "
+                    "the associated video loop or image preview in the central media viewer container."
+                ),
+                details={
+                    "target_selector": hms.get("target_selector"),
+                    "media_samples": hms.get("media_samples", []),
+                    "count": hms.get("count", 1),
+                },
+            )
+        )
+        recommended.append(
+            f"Wire dynamic media switcher on {hms['trigger_selector']}: Hovering items swaps and plays background video."
+        )
+
+    # Scroll Parallax Tracks
+    scroll_parallaxes = raw_probe.get("scroll_parallaxes", [])
+    for sp in scroll_parallaxes:
+        features.append(
+            SophisticatedFeature(
+                category="scroll_parallax",
+                name=f"Scroll Parallax Track ({sp['selector']})",
+                selector=sp["selector"],
+                description=sp["description"],
+                dimensions=sp.get("dimensions", {}),
+                requires_independent_exploration=False,
+                exploration_status="explored",
+                suggested_implementation=(
+                    "Apply continuous scroll translation (transform: translateY) at customized scrub speeds "
+                    "using Lenis scroll event or GSAP ScrollTrigger."
+                ),
+                details={
+                    "move_mode": sp.get("move_mode"),
+                    "count": sp.get("count", 1),
+                },
             )
         )
 

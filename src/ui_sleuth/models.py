@@ -218,6 +218,11 @@ class SophisticatedFeature(BaseModel):
         "webgl_canvas",
         "motion_physics_engine",
         "marquee_stream",
+        "magnetic_physics",
+        "custom_cursor",
+        "typographic_reveal",
+        "hover_media_switcher",
+        "scroll_parallax",
     ] = Field(description="Category of the sophisticated feature")
     name: str = Field(description="Human-readable feature name or landmark identifier")
     selector: str = Field(description="CSS selector identifying the component root")

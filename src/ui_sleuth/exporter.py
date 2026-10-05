@@ -13,9 +13,194 @@ from ui_sleuth.models import (
     MultiPageCrawlResult,
     SectionBlueprint,
     SiteBlueprint,
+    SophisticatedFeature,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def render_kinetic_runbook(features: list[SophisticatedFeature]) -> list[str]:
+    """Generates an actionable, copy-pasteable code runbook for detected kinetic micro-interactions."""
+    categories = {f.category for f in features}
+    kinetic_categories = {
+        "magnetic_physics",
+        "custom_cursor",
+        "typographic_reveal",
+        "hover_media_switcher",
+        "scroll_parallax",
+    }
+    if not categories.intersection(kinetic_categories):
+        return []
+
+    lines: list[str] = [
+        "### Kinetic Micro-Interactions & Cursor Physics Runbook",
+        "",
+        "> The target experience uses subtle kinetic micro-interactions that define its polished feel.",
+        "> Implement the following systems to match the reference site fidelity:",
+        "",
+    ]
+
+    if "magnetic_physics" in categories:
+        lines.extend(
+            [
+                "#### 1. Magnetic Button Physics (Elastic Pointer Pull)",
+                "```typescript",
+                "// Elastic spring attraction: elements smoothly gravitate towards pointer coordinates",
+                "export function initMagneticElements(selector = '[data-magnetic]') {",
+                "  const elements = document.querySelectorAll<HTMLElement>(selector);",
+                "  elements.forEach((el) => {",
+                "    const strength = parseFloat(el.dataset.magnetic || '20');",
+                "    const onMouseMove = (e: MouseEvent) => {",
+                "      const rect = el.getBoundingClientRect();",
+                "      const dx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);",
+                "      const dy = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);",
+                "      el.style.transform = `translate(${dx * strength}px, ${dy * strength}px)`;",
+                "      el.style.transition = 'transform 0.15s cubic-bezier(0.25, 1, 0.5, 1)';",
+                "    };",
+                "    const onMouseLeave = () => {",
+                "      el.style.transform = 'translate(0px, 0px)';",
+                "      el.style.transition = 'transform 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // elastic spring back",
+                "    };",
+                "    el.addEventListener('mousemove', onMouseMove);",
+                "    el.addEventListener('mouseleave', onMouseLeave);",
+                "  });",
+                "}",
+                "```",
+                "",
+            ]
+        )
+
+    if "custom_cursor" in categories:
+        lines.extend(
+            [
+                "#### 2. Interactive Custom Cursor & Floating Card Preview",
+                "```typescript",
+                "// Fixed pointer follower with lerp coordinates, hover scaling, and floating image card",
+                "export function initCustomCursor() {",
+                "  const cursor = document.querySelector<HTMLElement>('.cursor-wrap');",
+                "  const previewImg = document.querySelector<HTMLImageElement>('.cursor-img');",
+                "  if (!cursor) return;",
+                "",
+                "  let mouseX = 0, mouseY = 0;",
+                "  let cursorX = 0, cursorY = 0;",
+                "",
+                "  window.addEventListener('pointermove', (e) => {",
+                "    mouseX = e.clientX;",
+                "    mouseY = e.clientY;",
+                "  });",
+                "",
+                "  function render() {",
+                "    cursorX += (mouseX - cursorX) * 0.18; // smooth lerp damp",
+                "    cursorY += (mouseY - cursorY) * 0.18;",
+                "    cursor.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0)`;",
+                "    requestAnimationFrame(render);",
+                "  }",
+                "  requestAnimationFrame(render);",
+                "",
+                "  // Button / link expand states",
+                "  document.querySelectorAll('[data-cursor]').forEach((el) => {",
+                "    const state = el.getAttribute('data-cursor');",
+                "    el.addEventListener('mouseenter', () => cursor.classList.add(`is-${state}`));",
+                "    el.addEventListener('mouseleave', () => cursor.classList.remove(`is-${state}`));",
+                "  });",
+                "",
+                "  // Floating project preview card on hover",
+                "  document.querySelectorAll<HTMLElement>('[data-cursor-img]').forEach((el) => {",
+                "    el.addEventListener('mouseenter', () => {",
+                "      const imgUrl = el.getAttribute('data-cursor-img');",
+                "      if (previewImg && imgUrl) {",
+                "        previewImg.src = imgUrl;",
+                "        cursor.classList.add('has-img-preview');",
+                "      }",
+                "    });",
+                "    el.addEventListener('mouseleave', () => {",
+                "      cursor.classList.remove('has-img-preview');",
+                "    });",
+                "  });",
+                "}",
+                "```",
+                "",
+            ]
+        )
+
+    if "typographic_reveal" in categories:
+        lines.extend(
+            [
+                "#### 3. Typographic SplitText Cascade (Masked Entrance)",
+                "```typescript",
+                "// Staggered upward character / word reveals with overflow masking",
+                "export function initTypographicReveals(selector = '.split-text, h1, h2') {",
+                "  const headings = document.querySelectorAll<HTMLElement>(selector);",
+                "  headings.forEach((heading) => {",
+                "    const words = (heading.textContent || '').trim().split(/\\s+/);",
+                "    heading.innerHTML = words",
+                "      .map(",
+                "        (word) => `",
+                '        <span class="inline-block overflow-hidden align-top">',
+                '          <span class="reveal-word inline-block transition-transform duration-700 ease-out translate-y-full opacity-0">',
+                "            ${word}&nbsp;",
+                "          </span>",
+                "        </span>`",
+                "      )",
+                "      .join('');",
+                "",
+                "    const observer = new IntersectionObserver((entries) => {",
+                "      entries.forEach((entry) => {",
+                "        if (entry.isIntersecting) {",
+                "          heading.querySelectorAll<HTMLElement>('.reveal-word').forEach((span, idx) => {",
+                "            setTimeout(() => {",
+                "              span.style.transform = 'translateY(0%)';",
+                "              span.style.opacity = '1';",
+                "            }, idx * 25);",
+                "          });",
+                "          observer.unobserve(heading);",
+                "        }",
+                "      });",
+                "    }, { threshold: 0.15 });",
+                "",
+                "    observer.observe(heading);",
+                "  });",
+                "}",
+                "```",
+                "",
+            ]
+        )
+
+    if "hover_media_switcher" in categories:
+        lines.extend(
+            [
+                "#### 4. Dynamic Hover Media Switcher",
+                "```typescript",
+                "// Dynamically cross-fade and play preview media when hovering list items",
+                "export function initHoverMediaSwitcher(",
+                "  triggerSelector = '[data-video=\"to-play\"]',",
+                "  videoTargetSelector = '#hero-active-video'",
+                ") {",
+                "  const triggers = document.querySelectorAll<HTMLElement>(triggerSelector);",
+                "  const video = document.querySelector<HTMLVideoElement>(videoTargetSelector);",
+                "  if (!video) return;",
+                "",
+                "  triggers.forEach((item) => {",
+                "    item.addEventListener('mouseenter', () => {",
+                "      const videoSrc = item.getAttribute('data-thumb-video') || item.getAttribute('data-video-url');",
+                "      if (videoSrc && video.getAttribute('src') !== videoSrc) {",
+                "        video.style.opacity = '0';",
+                "        setTimeout(() => {",
+                "          video.src = videoSrc;",
+                "          video.load();",
+                "          video.play().catch(() => {});",
+                "          video.style.opacity = '1';",
+                "        }, 150);",
+                "      }",
+                "    });",
+                "  });",
+                "}",
+                "```",
+                "",
+            ]
+        )
+
+    return lines
 
 
 def generate_llm_markdown(blueprint: SiteBlueprint) -> str:
@@ -159,6 +344,10 @@ def generate_llm_markdown(blueprint: SiteBlueprint) -> str:
             for rec in soph.recommended_explorations:
                 lines.append(f"- 🔍 {rec}")
             lines.append("")
+
+        runbook_lines = render_kinetic_runbook(soph.features)
+        if runbook_lines:
+            lines.extend(runbook_lines)
 
     lines.extend(
         [
@@ -471,6 +660,10 @@ def generate_site_design_system_markdown(crawl_result: MultiPageCrawlResult) -> 
                     f"  - Recommended Implementation: {feat.suggested_implementation}",
                 ]
             )
+
+        runbook_lines = render_kinetic_runbook(ds.sophisticated_features)
+        if runbook_lines:
+            lines.extend(runbook_lines)
     else:
         lines.append("- *(No advanced sticky scroll tracks or off-screen drawers detected)*")
 
