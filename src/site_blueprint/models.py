@@ -207,6 +207,64 @@ class ExternalProductionAsset(BaseModel):
     )
 
 
+class SophisticatedFeature(BaseModel):
+    """An advanced interactive or motion component requiring dedicated analysis."""
+
+    category: Literal[
+        "sticky_scroll_track",
+        "offscreen_drawer",
+        "interactive_disclosure",
+        "tab_container",
+        "webgl_canvas",
+        "motion_physics_engine",
+        "marquee_stream",
+    ] = Field(description="Category of the sophisticated feature")
+    name: str = Field(description="Human-readable feature name or landmark identifier")
+    selector: str = Field(description="CSS selector identifying the component root")
+    description: str = Field(description="Architectural description and interaction mechanics")
+    dimensions: dict[str, int] = Field(
+        default_factory=dict,
+        description="Rendered dimensions: top, left, width, height",
+    )
+    requires_independent_exploration: bool = Field(
+        default=True,
+        description="Whether this feature needs isolated or phased exploration rather than flat capture",
+    )
+    exploration_status: Literal["detected", "explored", "skipped"] = Field(
+        default="detected",
+        description="Execution status of targeted exploration",
+    )
+    suggested_implementation: str = Field(
+        default="",
+        description="Recommended modern React/Next.js/Framer Motion pattern to replicate this feature",
+    )
+    details: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Extracted runtime diagnostics (e.g. keyframe phases, triggers, expanded content)",
+    )
+
+
+class SophisticatedFeaturesSummary(BaseModel):
+    """Aggregated manifest of sophisticated interactive systems and recommended explorations."""
+
+    has_sophisticated_features: bool = Field(
+        default=False,
+        description="Flag indicating if the site employs advanced animation or interaction systems",
+    )
+    detected_engines: list[str] = Field(
+        default_factory=list,
+        description="Detected motion/physics/3D libraries (e.g. 'GSAP ScrollTrigger', 'Lenis Smooth Scroll', 'Three.js')",
+    )
+    features: list[SophisticatedFeature] = Field(
+        default_factory=list,
+        description="Individual sophisticated components detected on the page",
+    )
+    recommended_explorations: list[str] = Field(
+        default_factory=list,
+        description="Actionable recommendations for how an LLM or UI engineer should reconstruct these systems",
+    )
+
+
 class SiteMetadata(BaseModel):
     """Metadata regarding the scraped target page and execution session."""
 
@@ -236,6 +294,10 @@ class SiteBlueprint(BaseModel):
     tokens: DesignTokens
     landmarks: list[SectionBlueprint] = Field(default_factory=list)
     external_production_assets: list[ExternalProductionAsset] = Field(default_factory=list)
+    sophisticated_features: SophisticatedFeaturesSummary | None = Field(
+        default=None,
+        description="Inventory of advanced animations, sticky scroll tracks, offscreen drawers, and interactive systems requiring independent exploration",
+    )
     screenshot_path: str | None = Field(
         default=None,
         description="Relative or absolute path to the captured full-page screenshot",

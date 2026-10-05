@@ -120,11 +120,47 @@ def generate_llm_markdown(blueprint: SiteBlueprint) -> str:
         lines.append("*(No external 3D, WebGL canvas, or background video streams detected)*")
         lines.append("")
 
+    # 4. Sophisticated Features & Motion Engines
+    soph = blueprint.sophisticated_features
+    if soph and soph.has_sophisticated_features:
+        lines.extend(
+            [
+                "---",
+                "",
+                "## 4. SOPHISTICATED INTERACTIVE FEATURES & MOTION MANIFEST",
+                "",
+            ]
+        )
+        if soph.detected_engines:
+            lines.append(
+                f"- **Detected Motion / Physics Engines:** {', '.join(soph.detected_engines)}"
+            )
+            lines.append("")
+
+        for f in soph.features:
+            cat_display = f.category.replace("_", " ").title()
+            lines.append(f"### {cat_display}: {f.name} (`{f.selector}`)")
+            lines.append(f"- **Description:** {f.description}")
+            if f.dimensions:
+                dim_str = ", ".join(f"{k}: {v}px" for k, v in f.dimensions.items())
+                lines.append(f"- **Dimensions:** `{dim_str}`")
+            if f.suggested_implementation:
+                lines.append(f"- **Recommended Implementation:** {f.suggested_implementation}")
+            if f.details:
+                lines.append(f"- **Extracted Diagnostics:** `{json.dumps(f.details)}`")
+            lines.append("")
+
+        if soph.recommended_explorations:
+            lines.append("### Recommended Independent Explorations")
+            for rec in soph.recommended_explorations:
+                lines.append(f"- 🔍 {rec}")
+            lines.append("")
+
     lines.extend(
         [
             "---",
             "",
-            "## 4. SEMANTIC COMPONENT ARCHITECTURE & LANDMARKS",
+            "## 5. SEMANTIC COMPONENT ARCHITECTURE & LANDMARKS",
             "",
         ]
     )
@@ -176,12 +212,13 @@ def generate_llm_markdown(blueprint: SiteBlueprint) -> str:
             "",
             "---",
             "",
-            "## 5. RECONSTRUCTION IMPLEMENTATION INSTRUCTIONS",
+            "## 6. RECONSTRUCTION IMPLEMENTATION INSTRUCTIONS",
             "1. **Component Structure:** Break each structural landmark above into a modular component (`Header`, `HeroSection`, `FeatureGrid`, `Footer`).",
             "2. **Design Tokens:** Define the color palette and typography rules using Tailwind CSS classes or CSS modules corresponding to the harvested tokens.",
             "3. **Repetitive Patterns:** For all collapsed patterns (e.g. `FeatureCard`), create a dedicated reusable component and map over mock data using the sample content structure.",
-            "4. **Production Disciplines:** If 3D, Rive, or Video assets were detected, integrate the suggested wrapper libraries (`@react-three/fiber`, `@rive-app/react-canvas`, HTML5 video loop).",
-            "5. **Responsiveness:** Maintain standard responsive breakpoints (`sm: 640px`, `md: 768px`, `lg: 1024px`, `xl: 1280px`).",
+            "4. **Sophisticated Features & Motion:** If sticky scroll tracks, off-screen drawers, or motion engines were detected in Section 4, implement them using the recommended component wrappers (e.g. Framer Motion `useScroll`, Radix UI Dialog/Drawer, `@darkroom.engineering/lenis`).",
+            "5. **Production Disciplines:** If 3D, Rive, or Video assets were detected, integrate the suggested wrapper libraries (`@react-three/fiber`, `@rive-app/react-canvas`, HTML5 video loop).",
+            "6. **Responsiveness:** Maintain standard responsive breakpoints (`sm: 640px`, `md: 768px`, `lg: 1024px`, `xl: 1280px`).",
             "",
         ]
     )

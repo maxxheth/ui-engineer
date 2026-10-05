@@ -107,6 +107,28 @@ def extract(
             "--real-chrome/--no-real-chrome", help="Use installed Google Chrome executable"
         ),
     ] = None,
+    delay: Annotated[
+        float,
+        typer.Option(
+            "--delay",
+            "-d",
+            help="Post-load stabilization delay in seconds for animations and dynamic content",
+        ),
+    ] = 2.0,
+    auto_scroll: Annotated[
+        bool,
+        typer.Option(
+            "--auto-scroll/--no-auto-scroll",
+            help="Progressively scroll the page to trigger lazy loading, fonts, and scroll triggers",
+        ),
+    ] = True,
+    explore: Annotated[
+        bool,
+        typer.Option(
+            "--explore/--no-explore",
+            help="Detect and independently explore sophisticated interactive features, sticky tracks, and drawers",
+        ),
+    ] = True,
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Enable verbose debug logging"),
@@ -161,6 +183,9 @@ def extract(
         real_chrome=real_chrome,
         headless=headless,
         screenshot_path=screenshot_dest,
+        delay=delay,
+        auto_scroll=auto_scroll,
+        explore_features=explore,
     )
 
     try:
@@ -201,6 +226,15 @@ def extract(
     table.add_row("Collapsed Patterns", str(total_patterns))
 
     table.add_row("Production Assets", str(len(blueprint.external_production_assets)))
+
+    if (
+        blueprint.sophisticated_features
+        and blueprint.sophisticated_features.has_sophisticated_features
+    ):
+        sf = blueprint.sophisticated_features
+        engines_str = ", ".join(sf.detected_engines) if sf.detected_engines else "Standard DOM"
+        table.add_row("Motion Engines", engines_str)
+        table.add_row("Sophisticated Features", f"{len(sf.features)} analyzed")
 
     console.print(table)
 

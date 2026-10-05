@@ -16,6 +16,7 @@ from site_blueprint.asset_inspector import (
     synthesize_production_assets,
 )
 from site_blueprint.dom_pruner import prune_and_map_dom
+from site_blueprint.feature_detector import detect_and_explore_features
 from site_blueprint.models import (
     DesignTokens,
     SiteBlueprint,
@@ -47,6 +48,69 @@ def is_chrome_installed() -> bool:
     return bool(shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chrome"))
 
 
+# Client-side JavaScript routine to force hydration of lazy images, scroll triggers, and web fonts
+HYDRATE_PAGE_JS = """
+async () => {
+    // 1. Force eager loading and restore data-src on all images
+    document.querySelectorAll('img').forEach(img => {
+        if (img.loading === 'lazy') img.loading = 'eager';
+        if (img.dataset.src && !img.src) img.src = img.dataset.src;
+        if (img.dataset.srcset && !img.srcset) img.srcset = img.dataset.srcset;
+    });
+
+    // 2. Progressive scroll down to trigger IntersectionObserver, lazy loading, and animations
+    const getScrollHeight = () => Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.offsetHeight
+    );
+
+    const viewportHeight = window.innerHeight || 900;
+    const step = Math.max(Math.floor(viewportHeight * 0.75), 500);
+    let currentY = 0;
+    let maxScroll = getScrollHeight();
+
+    while (currentY < maxScroll) {
+        currentY = Math.min(currentY + step, maxScroll);
+        window.scrollTo(0, currentY);
+        if (window.ScrollTrigger) window.ScrollTrigger.update();
+        if (window.lenis && typeof window.lenis.scrollTo === 'function') {
+            try { window.lenis.scrollTo(currentY, { immediate: true }); } catch (e) {}
+        }
+        await new Promise(r => setTimeout(r, 40));
+        maxScroll = getScrollHeight();
+    }
+
+    // 3. Advance all GSAP ScrollTrigger animations to progress 1 (fully revealed)
+    if (window.ScrollTrigger && window.ScrollTrigger.getAll) {
+        try {
+            window.ScrollTrigger.getAll().forEach(st => {
+                if (st.animation && typeof st.animation.progress === 'function') {
+                    try { st.animation.progress(1); } catch (e) {}
+                }
+            });
+        } catch (e) {}
+    }
+
+    // 4. Force image decoding
+    const imgs = Array.from(document.querySelectorAll('img'));
+    await Promise.all(
+        imgs.map(img => (img.decode ? img.decode().catch(() => {}) : Promise.resolve()))
+    );
+
+    // 5. Ensure web fonts are completely ready
+    if (document.fonts && document.fonts.ready) {
+        try { await document.fonts.ready; } catch (e) {}
+    }
+
+    // 6. Dispatch synthetic scroll and resize events
+    window.dispatchEvent(new Event('scroll'));
+    window.dispatchEvent(new Event('resize'));
+}
+"""
+
+
 class ScraplingEngine:
     """Core extraction engine integrating Scrapling, network hooks, and multimodal capture."""
 
@@ -61,6 +125,9 @@ class ScraplingEngine:
         real_chrome: bool | None = None,
         headless: bool = True,
         screenshot_path: Path | None = None,
+        delay: float = 2.0,
+        auto_scroll: bool = True,
+        explore_features: bool = True,
     ) -> None:
         self.url = url
         self.wait_until = wait_until.lower().strip()
@@ -71,6 +138,9 @@ class ScraplingEngine:
         self.use_stealth = use_stealth
         self.headless = headless
         self.screenshot_path = screenshot_path
+        self.delay = max(0.0, delay)
+        self.auto_scroll = auto_scroll
+        self.explore_features = explore_features
 
         # If real_chrome is None, auto-enable if installed
         if real_chrome is None:
@@ -102,15 +172,31 @@ class ScraplingEngine:
     def _page_action(self, page: Page) -> None:
         """Execute post-navigation evaluations and capture screenshot while session is alive."""
         try:
-            # 1. Harvest design tokens
+            # 1. Progressive auto-scroll hydration for lazy images, fonts, and scroll triggers
+            if self.auto_scroll:
+                try:
+                    logger.debug("Executing progressive auto-scroll page hydration...")
+                    page.evaluate(HYDRATE_PAGE_JS)
+                except Exception as e:
+                    logger.debug("Page hydration evaluation encountered error: %s", e)
+
+            # 2. Configurable post-load delay for animation stabilization
+            if self.delay > 0:
+                page.wait_for_timeout(int(self.delay * 1000))
+
+            # 3. Harvest design tokens (now sampled on fully hydrated elements)
             tokens: DesignTokens = harvest_design_tokens(page)
             self._action_data["tokens"] = tokens
 
-            # 2. Probe canvas runtime engines and video playback diagnostics
+            # 4. Probe canvas runtime engines and video playback diagnostics
             dom_probe = inspect_canvas_and_video(page)
             self._action_data["dom_probe"] = dom_probe
 
-            # 3. Page title and meta description
+            # 5. Probe and explore sophisticated interactive features
+            features_summary = detect_and_explore_features(page, explore=self.explore_features)
+            self._action_data["sophisticated_features"] = features_summary
+
+            # 6. Page title and meta description
             title = page.title() or ""
             meta_desc = None
             desc_handle = page.query_selector('meta[name="description"]')
@@ -119,7 +205,7 @@ class ScraplingEngine:
             self._action_data["title"] = title
             self._action_data["description"] = meta_desc
 
-            # 4. Optional full-page screenshot
+            # 7. Capture full-page screenshot
             if self.screenshot_path:
                 self.screenshot_path.parent.mkdir(parents=True, exist_ok=True)
                 page.screenshot(path=str(self.screenshot_path), full_page=True)
@@ -151,6 +237,7 @@ class ScraplingEngine:
             "page_action": self._page_action,
             "additional_args": {
                 "viewport": self.viewport,
+                "device_scale_factor": 1,
             },
         }
 
@@ -212,5 +299,6 @@ class ScraplingEngine:
             tokens=tokens,
             landmarks=landmarks,
             external_production_assets=production_assets,
+            sophisticated_features=self._action_data.get("sophisticated_features"),
             screenshot_path=self._action_data.get("screenshot_saved"),
         )
